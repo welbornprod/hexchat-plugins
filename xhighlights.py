@@ -7,16 +7,17 @@
     Colors/Styles are customisable.
     -Christopher Welborn
 """
-
-__module_name__ = 'xhighlights'
-__module_version__ = '0.4.1'
-__module_description__ = (
-    'Highlights URLs, nicks, and custom patterns in the chat window.')
-VERSIONSTR = '{} v. {}'.format(__module_name__, __module_version__)
+from __future__ import print_function
 import logging
 import pickle
 import os
 import re
+
+__module_name__ = 'xhighlights'
+__module_version__ = '0.5.0'
+__module_description__ = (
+    'Highlights URLs, nicks, and custom patterns in the chat window.')
+VERSIONSTR = '{} v. {}'.format(__module_name__, __module_version__)
 
 
 class logger(object):
@@ -566,8 +567,11 @@ def load_user_patterns():
         return False
 
     try:
-        with open(CUSTOMFILE, 'r') as f:
-            data = pickle.load(f)
+        with open(CUSTOMFILE, 'rb') as f:
+            data = f.read()
+            if not data:
+                return False
+            data = pickle.loads(data)
     except EnvironmentError as ex:
         errmsg = 'Unable to load custom patterns!'
         print_error(errmsg, exc=ex)

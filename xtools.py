@@ -66,7 +66,7 @@ class XToolsConfig(object):
         self.msgs_tab_title = '[caught-msgs]'
 
         # Default settings. (prefs file overrides these)
-        self.settings = {'redirect_msgs': False, 'enable_utf8': True}
+        self.settings = {'redirect_msgs': False, 'enable_utf8': False}
 
         # Ignored nicks (loaded from prefs if available)
         # contains nicks as keys, {'index': 0, 'pattern': repattern} as values
