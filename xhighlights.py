@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """xhighlights.py
@@ -7,14 +7,13 @@
     Colors/Styles are customisable.
     -Christopher Welborn
 """
-from __future__ import print_function
 import logging
 import pickle
 import os
 import re
 
 __module_name__ = 'xhighlights'
-__module_version__ = '0.5.0'
+__module_version__ = '1.0.0'
 __module_description__ = (
     'Highlights URLs, nicks, and custom patterns in the chat window.')
 VERSIONSTR = '{} v. {}'.format(__module_name__, __module_version__)
@@ -83,6 +82,7 @@ class logger(object):
         self.level = lvl
         self.log.setLevel(self.level)
 
+
 # File for config. CWD is used, it usually defaults to /home/username
 try:
     CWD = os.path.split(__file__)[0]
@@ -94,15 +94,17 @@ CUSTOMFILE = os.path.join(CWD, 'xhighlights.pkl')
 
 
 # Logger for xhighlights main.
-_log = logger('xhighlights', level=logging.DEBUG).log
+_log = logger('xhighlights', level=logging.ERROR).log
 _log.debug('{} loaded.'.format(VERSIONSTR))
 
 # Regex for matching a link..
 # Prefixes (as found in xchat/src/common/url.c)
-url_pre = ('irc\.', 'ftp\.', 'www\.',
-           'irc\://', 'ftp\://', 'http\://', 'https\://',
-           'file\://', 'rtsp\://', 'ut2004\://',
-           )
+url_pre = (
+    'irc\.', 'ftp\.', 'www\.',
+    'irc\://', 'ftp\://', 'http\://', 'https\://',
+    'file\://', 'rtsp\://', 'ut2004\://',
+)
+
 # Extension (as found in xchat/src/common/url.c)
 url_ext = ('org', 'net', 'com', 'edu', 'html', 'info', 'name')
 # Start is optional, but will trigger a match.
@@ -117,9 +119,9 @@ email = r'(.+\@.+\..+)'
 # Middle and End will trigger a match.
 linkpattern = '{}?{}{}'.format(start, middle, end)  # , extended)
 # Prefix will trigger a match.
-linkpattern += '|{}{}({})?'.format(start, middle, end)
+linkpattern = ''.join((linkpattern, '|{}{}({})?'.format(start, middle, end)))
 # Email address triggers a match.
-linkpattern += '|{}'.format(email)
+linkpattern = ''.join((linkpattern, '|{}'.format(email)))
 # Final pattern for highlighting a link.
 link_re = re.compile(linkpattern)
 
@@ -205,17 +207,20 @@ def build_color_table():
     resetcode = ''
 
     # Codes (index is the color code)
-    codes = ['none', 'black', 'darkblue',
-             'darkgreen', 'darkred', 'red', 'darkpurple',
-             'brown', 'yellow', 'green', 'darkcyan',
-             'cyan', 'blue', 'purple', 'darkgrey', 'grey']
+    codes = [
+        'none', 'black', 'darkblue',
+        'darkgreen', 'darkred', 'red', 'darkpurple',
+        'brown', 'yellow', 'green', 'darkcyan',
+        'cyan', 'blue', 'purple', 'darkgrey', 'grey'
+    ]
 
     # Build basic table.
     colors = {}
     for i, code in enumerate(codes):
-        colors[code] = {'index': i,
-                        'code': '{}{}'.format(start, str(i)),
-                        }
+        colors[code] = {
+            'index': i,
+            'code': '{}{}'.format(start, str(i)),
+        }
 
     # Add style codes.
     # (made up an index for them for now, so color_code(97) will work.)
@@ -307,26 +312,29 @@ def color_code(color, suppresswarning=False):
 
     try:
         code = COLORS[color]['code']
-    except:
+    except KeyError:
         # Try number.
         try:
             codeval = int(color)
             start = ''
             code = '{}{}'.format(start, str(codeval))
-        except:
+        except (TypeError, ValueError):
             code = None
 
     if code:
         return code
-    else:
-        if suppresswarning:
-            return None
-        else:
-            # Can't find that color! this is the coders fault :(
-            print_error('Script error: Invalid color for color_code: '
-                        '{}'.format(str(color)),
-                        boldtext=str(color))
-            return COLORS['reset']['code']
+
+    if suppresswarning:
+        return None
+
+    # Can't find that color! this is the coders fault :(
+    print_error(
+        'Script error: Invalid color for color_code: {}'.format(
+            color
+        ),
+        boldtext=color
+    )
+    return COLORS['reset']['code']
 
 
 def color_text(color=None, text=None, bold=False, underline=False):
@@ -447,8 +455,10 @@ def get_stylecodes(userstyle):
     stylenames = parse_styles(userstyle)
     stylecodes = try_stylecodes(stylenames)
     if not stylecodes:
-        print_error('Invalid style code: {}'.format(userstyle),
-                    boldtext=userstyle)
+        print_error(
+            'Invalid style code: {}'.format(userstyle),
+            boldtext=userstyle
+        )
         return None
     return stylecodes
 
@@ -471,14 +481,15 @@ def emit_highlighted(*emitargs):
 def highlight_custom(word, patterninfo):
     """ Highlight a custom word. """
     template = patterninfo['template']
-    codes = patterninfo['stylecodes']
-    # Wraps a word with the user styles and a reset.
-    colorize = lambda s: '{}{}{}'.format(codes, s, Codes.normal)
+
+    def colorize(s):
+        """ Wraps a word with the user styles and a reset. """
+        codes = patterninfo['stylecodes']
+        return '{}{}{}'.format(codes, s, Codes.normal)
 
     rematch = patterninfo['pattern'].match(word)
     if not rematch:
         return word
-
     matchgroupdict = rematch.groupdict()
     if matchgroupdict:
         # User is using named groups.
@@ -496,7 +507,7 @@ def highlight_custom(word, patterninfo):
     if matchgroups:
         # User is using groups with the template.
         try:
-            newword = template.format(*(colorize(w) for w in matchgroups))
+            newword = colorize(template.format(*matchgroups))
         except Exception as ex:
             errfmt = 'Unable to use .groups(): {}\n    with: {}\n    {}'
             _log.error(errfmt.format(matchgroups, template, ex))
@@ -506,7 +517,7 @@ def highlight_custom(word, patterninfo):
             return newword
 
     # Simple single word highlight.
-    newword = template.format(colorize(word))
+    return colorize(template.format(word))
 
 
 def highlight_word(s, style='link', ownmsg=False):
@@ -533,9 +544,11 @@ def highlight_word(s, style='link', ownmsg=False):
     else:
         # Not implemented
         stylecode = Codes.normal
-    formatted = '{style}{word}{reset}'.format(style=stylecode,
-                                              word=s,
-                                              reset=resetcode)
+    formatted = '{style}{word}{reset}'.format(
+        style=stylecode,
+        word=s,
+        reset=resetcode
+    )
     return formatted
 
 
@@ -637,12 +650,13 @@ def message_filter(word, word_eol, userdata):
 
         # Link highlighting
         linkmatch = link_re.search(eachword)
-        if linkmatch:
+        if linkmatch is not None:
             # Highlight it
             msgwords[i] = highlight_word(
                 eachword,
                 'link',
-                ownmsg=userownmsg)
+                ownmsg=userownmsg
+            )
             highlighted = True
 
         # Nick highlighting
@@ -651,7 +665,8 @@ def message_filter(word, word_eol, userdata):
             msgwords[i] = highlight_word(
                 eachword,
                 'nick',
-                ownmsg=userownmsg)
+                ownmsg=userownmsg
+            )
             highlighted = True
 
     # Replace old message.
@@ -670,11 +685,7 @@ def message_filter(word, word_eol, userdata):
 
 def parse_styles(txt):
     """ Parses comma - separated styles. """
-    if ',' in txt:
-        return [s.strip() for s in txt.split(',')]
-    else:
-        # single item
-        return [txt.strip()]
+    return [s.strip() for s in txt.split(',')]
 
 
 def pref_get(opt):
@@ -770,9 +781,11 @@ def pref_set(opt, val):
             fwrite.write('\n')
             return True
     except (IOError, OSError) as ex:
-        print_error('Unable to write to config file: {}'.format(CONFIGFILE),
-                    exc=ex,
-                    boldtext=CONFIGFILE)
+        print_error(
+            'Unable to write to config file: {}'.format(CONFIGFILE),
+            exc=ex,
+            boldtext=CONFIGFILE
+        )
         return False
 
 
@@ -902,6 +915,7 @@ def print_status(s):
 
     print('\n{}\n'.format(color_text('green', s)))
 
+
 # Helper function for remove_mirc_color (for preloading sub function)
 mirc_color_regex = re.escape('\x03') + r'(?:(\d{1,2})(?:,(\d{1,2}))?)?'
 mirc_sub_pattern = re.compile(mirc_color_regex).sub
@@ -957,7 +971,7 @@ def save_user_patterns():
         Prints status/error messages.
     """
     try:
-        with open(CUSTOMFILE, 'w') as f:
+        with open(CUSTOMFILE, 'wb') as f:
             pickle.dump(Codes.custom, f)
     except EnvironmentError as expickle:
         errmsg = 'Unable to save custom patterns!'
@@ -980,8 +994,10 @@ def set_style(userstyle, stylename=None, silent=False):
     elif stylename == 'nick':
         Codes.nick = stylecodes
     else:
-        print_error('Invalid style name: {}'.format(stylename),
-                    boldtext=stylename)
+        print_error(
+            'Invalid style name: {}'.format(stylename),
+            boldtext=stylename
+        )
         return False
 
     # Save preference.
@@ -990,9 +1006,11 @@ def set_style(userstyle, stylename=None, silent=False):
         return False
 
     if not silent:
-        print_status('Set style for {}: {}{}'.format(stylename,
-                                                     stylecodes,
-                                                     userstyle))
+        print_status('Set style for {}: {}{}'.format(
+            stylename,
+            stylecodes,
+            userstyle
+        ))
     return True
 
 
@@ -1016,8 +1034,7 @@ def try_stylecodes(styles):
 COLORS = build_color_table()
 
 
-class Codes:
-
+class Codes(object):
     """ Holds current highlight styles. """
     defaultlink = color_code('u') + color_code('blue')
     defaultnick = color_code('green')
@@ -1026,6 +1043,7 @@ class Codes:
     ownmsg = color_code('darkgrey')
     normal = color_code('reset')
     custom = []
+
 
 # Load user preferences.
 for stylename in ('link', 'nick'):
@@ -1061,20 +1079,27 @@ cmd_help = {
         '    * if no style is given, the current style will be shown.\n'),
 }
 
-commands = {'xhighlights': {'desc': 'Gets and sets options for xhighlights.',
-                            'func': cmd_xhighlights,
-                            'enabled': True,
-                            },
-            'highlights': {'desc': 'alias',
-                           'func': cmd_xhighlights,
-                           'enabled': True,
-                           },
-            }
+commands = {
+    'xhighlights': {
+        'desc': 'Gets and sets options for xhighlights.',
+        'func': cmd_xhighlights,
+        'enabled': True,
+    },
+    'highlights': {
+        'desc': 'alias',
+        'func': cmd_xhighlights,
+        'enabled': True,
+    },
+}
 
 # command aliases.
-cmd_aliases = {'highlights': {'xhighlights': {'helpfix': ('XHIGH', 'HIGH')},
-                              },
-               }
+cmd_aliases = {
+    'highlights': {
+        'xhighlights': {
+            'helpfix': ('XHIGH', 'HIGH')
+        },
+    },
+}
 
 # Fix help and descriptions for aliases
 for aliasname in cmd_aliases.keys():
@@ -1100,10 +1125,12 @@ _log.debug('Initial hook into commands...')
 command_hooks = {}
 for cmdname in commands.keys():
     if commands[cmdname]['enabled']:
-        command_hooks[cmdname] = xchat.hook_command(cmdname.upper(),
-                                                    commands[cmdname]['func'],
-                                                    userdata=None,
-                                                    help=cmd_help[cmdname])
+        command_hooks[cmdname] = xchat.hook_command(
+            cmdname.upper(),
+            commands[cmdname]['func'],
+            userdata=None,
+            help=cmd_help[cmdname]
+        )
         _log.debug('Initially hooked command: {}'.format(cmdname))
 
 
@@ -1111,11 +1138,14 @@ for cmdname in commands.keys():
 _log.debug('Initial hook into channel messages...')
 event_hooks = {}
 for eventname in ('Channel Message', 'Channel Msg Hilight', 'Your Message'):
-    eventhookname = ('message_filter.'
-                     '{}'.format(eventname.lower().replace(' ', '')))
-    event_hooks[eventhookname] = xchat.hook_print(eventname,
-                                                  message_filter,
-                                                  userdata=eventname)
+    eventhookname = 'message_filter.{}'.format(
+        eventname.lower().replace(' ', '')
+    )
+    event_hooks[eventhookname] = xchat.hook_print(
+        eventname,
+        message_filter,
+        userdata=eventname
+    )
     _log.debug('Initially hooked event: {}'.format(eventhookname))
 
 
