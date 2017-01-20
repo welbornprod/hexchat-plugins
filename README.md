@@ -1,12 +1,11 @@
-# HexChat/XChat Plugins
+# HexChat
 
 This is a collection of hexchat plugins that improve the functionality of
 hexchat by providing highlights and extra commands. They are designed for
 a Linux system, and probably won't work on Windows.
 
-They were originally designed for XChat, but that program is not being
-updated regularly (hince the HexChat fork). I haven't been testing them
-on XChat, so I can't guarantee stability there.
+They were originally designed for XChat, but HexChat has since updated to
+Python 3 so they won't work anymore.
 
 You can use `/help` or `/help <plugin-name>` to see usage information.
 
